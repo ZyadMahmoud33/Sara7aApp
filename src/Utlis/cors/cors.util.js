@@ -14,7 +14,10 @@ export function corsOptions() {
                 callback(BadRequestException('Not allowed by CORS'));
             }
         },
+        credentials: true,
         methods: ["GET", "POST", "PATCH", "DELETE"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+
     };
     return corsOptions;
 }

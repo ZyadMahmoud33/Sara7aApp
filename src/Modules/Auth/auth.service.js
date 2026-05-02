@@ -27,7 +27,7 @@ import { emailEvent, emailEventy } from "../../Utlis/events/email.events.js";
 
 
 export const signup = async (req, res) => {
-  const { firstName, lastName, email, password, phone  } = req.body;
+  const { firstName, lastName, email, password, phone, age, confirmPassword  } = req.body;
   if (await findOne({ model: UserModel, filter: { email } }))
     throw ConflictException({ message: "User already exists" });
   const hashedPassword = await generateHash({
@@ -48,6 +48,7 @@ export const signup = async (req, res) => {
       firstName,
       lastName,
       email,
+      age,
       password: hashedPassword,
       confirmPassword: hashedPassword,
       phone: encryptedData,
@@ -170,38 +171,28 @@ export const login = async (req, res) => {
 };
 
 export const refreshToken = async (req, res) => {
-  const { authorization } = req.headers;
-
-  const [bearer, token] = authorization.split(" ") || [];
-
-  if (!bearer || !token) {
-    throw new Error("Invalid token format");
-  }
-
-  const signature = getSignature({
-    getSignatureLevel: SignatureEnum.User,
-  });
-
-  const decoded = verifyToken({
-    token,
-    secretKey: signature.refreshSignature, // ✅ مهم
-  });
-
-  if (!decoded) {
-    throw new Error("Invalid or expired token");
-  }
 
   const user = await findById({
     model: UserModel,
-    id: decoded.id,
+    id: req.user.id, // 🔥 جاي من middleware
   });
 
   if (!user) {
     throw new Error("User not found");
   }
 
+  const signature = getSignature({
+    getSignatureLevel:
+      user.role !== RoleEnum.Admin
+        ? SignatureEnum.User
+        : SignatureEnum.Admin,
+  });
+
   const accessToken = generateToken({
-    payload: { id: user._id },
+    payload: {
+      id: user._id,
+      role: user.role, // 🔥 مهم جدًا
+    },
     secretKey: signature.accesssignature,
     options: { expiresIn: ACCESS_EXPIRES },
   });
@@ -211,7 +202,6 @@ export const refreshToken = async (req, res) => {
     accessToken,
   });
 };
-
 
 async function verifyGoogleAccount({idToken}) {
   const client = new OAuth2Client();

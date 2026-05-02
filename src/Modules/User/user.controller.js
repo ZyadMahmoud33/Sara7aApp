@@ -12,12 +12,18 @@ const router = Router();
 router.get(
     "/getuser", 
     authentication({tokenType: TokenTypeEnum.Access}),
-    authorization({AccessRoles: [RoleEnum.User]}),
+    authorization({AccessRoles: [RoleEnum.User, RoleEnum.Admin]}),
     userService.getprofile,
 
 );
 
 
+
+router.get("/profile/:username", userService.getUserByUsername);
+
+router.get("/:id", userService.getUserById);
+
+// علق الـ validation line
 router.patch(
   "/update-profile-pic",
   authentication({ tokenType: TokenTypeEnum.Access }),
@@ -26,9 +32,11 @@ router.patch(
     customPath: "Users",
     validation: [...fileValidation.images],
   }).single("attachments"),
-  validation(userValidation.updateProfilePicSchema),
+  // validation(userValidation.updateProfilePicSchema), // ✅ علقها مؤقتاً
   userService.uploadProfilePic,
 );
+
+
 
 router.patch(
   "/update-cover-pic",
@@ -50,30 +58,65 @@ router.patch(
   userService.updatePassword,
 );
 
-router.delete(
-  "/:userId/freeze-account",
+
+
+router.patch(
+  "/upgrade/:userId",
+  authentication({ tokenType: TokenTypeEnum.Access }),
+  authorization({ AccessRoles: [RoleEnum.User] }),
+  validation(userValidation.getPremiumStatusSchema),
+  userService.upgradePlan
+);
+
+router.post(
+  "/checkout",
+  authentication({ tokenType: TokenTypeEnum.Access }),
+  authorization({ AccessRoles: [RoleEnum.User] }),
+  userService.createCheckoutSession
+);
+
+// 🔥 manual payment
+// FIX upgrade route
+
+
+// ✅ manual payment with validation
+router.post(
+  "/manual-payment",
+  authentication({ tokenType: TokenTypeEnum.Access }),
+  authorization({ AccessRoles: [RoleEnum.User] }),
+
+  localFileUpload({
+    customPath: "Users/manualPayments",
+    validation: [...fileValidation.images],
+  }).single("screenshot"),
+
+  userService.createManualPayment
+);
+
+router.post(
+  "/watch-ad",
+  authentication({ tokenType: TokenTypeEnum.Access }),
+  authorization({ AccessRoles: [RoleEnum.User] }),
+  userService.watchAd
+);
+
+router.patch(
+  "/update-profile",
   authentication({ tokenType: TokenTypeEnum.Access }),
   authorization({ AccessRoles: [RoleEnum.User, RoleEnum.Admin] }),
-  validation(userValidation.freezeAccountSchema),
-  userService.freezeAccount,
+  validation(userValidation.updateProfileSchema),
+  userService.updateProfile
 );
-
-// Restored User --> Admin
+// 👤 UPDATE PERSONAL INFO (جديد)
 router.patch(
-  "/:userId/restore-account",
+  "/update-personal-info",
   authentication({ tokenType: TokenTypeEnum.Access }),
-  authorization({ AccessRoles: [RoleEnum.Admin] }),
-  validation(userValidation.restoreAccountSchema),
-  userService.restoreAccount,
+  authorization({ AccessRoles: [RoleEnum.User, RoleEnum.Admin] }),
+  validation(userValidation.updatePersonalInfoSchema),
+  userService.updatePersonalInfo
 );
 
-router.delete(
-  "/:userId/hard-delete",
-  authentication({ tokenType: TokenTypeEnum.Access }),
-  authorization({ AccessRoles: [RoleEnum.Admin] }),
-  validation(userValidation.hardDeleteAccountSchema),
-  userService.hardDeleteAccount,
-);
+
 
 
 export default router;

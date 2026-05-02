@@ -32,6 +32,9 @@ export const decodedToken = async ({
       ? signature.accesssignature 
       : signature.refreshSignature,
     });
+    // ❌ لو التوكن بايظ
+   if (!decoded) throw UnauthorizedException({ message: "Invalid token ❌" });
+
 
      console.log(decoded);
     
@@ -97,7 +100,14 @@ export const authentication = ({tokenType = TokenTypeEnum.Access}) => {
 };
 
 
-
+export const isPremiumUser = (req, res, next) => {
+  if (!req.user.isPremium) {
+    return next(
+      new Error("Upgrade to premium first", { cause: 403 })
+    );
+  }
+  next();
+};
 
 
 

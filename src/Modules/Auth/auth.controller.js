@@ -51,8 +51,7 @@ router.post(
   authService.logoutWithRedis
 );
 
-router.patch(
-  "/forget-password",
+router.patch("/forget-password",
   validation(authValidation.forgetPasswordSchema),
   authService.forgetPassword
 );
